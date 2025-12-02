@@ -1,22 +1,13 @@
-
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import {
   Mail,
   MapPin,
-  Briefcase,
-  GraduationCap,
-  BookOpen,
-  ExternalLink,
-  Eye,
   Phone,
-  Calendar,
   Github,
-  Twitter,
-  Instagram,
   Linkedin,
+  ExternalLink,
 } from 'lucide-react';
 
 interface PortfolioData {
@@ -47,547 +38,455 @@ interface PortfolioData {
     year: string;
   }>;
   skills?: string[];
+  projects?: Array<{
+    title: string;
+    description: string;
+    technologies?: string;
+  }>;
 }
 
 interface PortfolioPreviewProps {
   data: PortfolioData;
 }
 
-type Section = 'about' | 'resume' | 'portfolio' | 'contact';
-
-export default function PortfolioPreview({ data }: PortfolioPreviewProps) {
-  const [activeSection, setActiveSection] = useState<Section>('about');
-
+// Simple UI Components (replacing shadcn/ui)
+function Button({
+  children,
+  variant = 'default',
+  size = 'default',
+  className = '',
+  asChild,
+  ...props
+}: {
+  children: React.ReactNode;
+  variant?: 'default' | 'outline';
+  size?: 'default' | 'sm' | 'lg' | 'icon';
+  className?: string;
+  asChild?: boolean;
+  [key: string]: any;
+}) {
+  const baseClasses = 'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50';
+  const variants = {
+    default: 'bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90',
+    outline: 'border border-gray-300 dark:border-gray-700 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800',
+  };
+  const sizes = {
+    default: 'h-10 px-4 py-2',
+    sm: 'h-9 px-3',
+    lg: 'h-11 px-8',
+    icon: 'h-10 w-10',
+  };
+  
+  const Component = asChild ? 'span' : 'button';
   return (
-    <div className="min-h-full bg-white dark:bg-[#121212] text-black dark:text-white p-4 sm:p-6 md:p-8">
-      <div className="mx-auto max-w-6xl">
-        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 md:gap-8">
-          <ProfileSidebar data={data} />
-          <main className="flex-1 bg-white dark:bg-[#1A1A1A] rounded-2xl border border-[#E5E7EB] dark:border-[#333333] overflow-hidden">
-            {/* Tabs */}
-            <nav className="flex gap-2 sm:gap-3 md:gap-5 p-4 sm:p-5 md:p-6 border-b border-[#E5E7EB] dark:border-[#333333] overflow-x-auto scrollbar-hide">
-              {['about', 'resume', 'portfolio', 'contact'].map((section) => (
-                <button
-                  key={section}
-                  onClick={() => setActiveSection(section as Section)}
-                  className={`px-4 sm:px-5 py-2.5 rounded-lg text-sm sm:text-base font-medium capitalize transition-colors whitespace-nowrap flex-shrink-0 ${
-                    activeSection === section
-                      ? 'bg-black text-white dark:bg-white dark:text-black'
-                      : 'text-[#60646C] dark:text-[#A0A0A0] hover:text-black dark:hover:text-white hover:bg-[#F3F4F6] dark:hover:bg-[#1F1F1F]'
-                  }`}
-                  style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
-                >
-                  {section}
-                </button>
-              ))}
-            </nav>
+    <Component
+      className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`}
+      {...props}
+    >
+      {children}
+    </Component>
+  );
+}
 
-            <div className="p-5 sm:p-6 md:p-8 lg:p-10">
-              {activeSection === 'about' && <AboutSection data={data} />}
-              {activeSection === 'resume' && <ResumeSection data={data} />}
-              {activeSection === 'portfolio' && <PortfolioSection data={data} />}
-              {activeSection === 'contact' && <ContactSection data={data} />}
-            </div>
-          </main>
-        </div>
-      </div>
+function Card({ children, className = '', ...props }: { children: React.ReactNode; className?: string; [key: string]: any }) {
+  return (
+    <div
+      className={`rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-sm ${className}`}
+      {...props}
+    >
+      {children}
     </div>
   );
 }
 
-/* Sidebar */
+function CardHeader({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <div className={`flex flex-col space-y-1.5 p-6 ${className}`}>{children}</div>;
+}
 
-function ProfileSidebar({ data }: { data: PortfolioData }) {
-  const avatarSrc = data.avatar || '/placeholder.svg';
+function CardTitle({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <h3 className={`text-2xl font-semibold leading-none tracking-tight ${className}`}>{children}</h3>;
+}
+
+function CardDescription({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <p className={`text-sm text-gray-500 dark:text-gray-400 ${className}`}>{children}</p>;
+}
+
+function CardContent({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <div className={`p-6 pt-0 ${className}`}>{children}</div>;
+}
+
+function Badge({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${className}`}>
+      {children}
+    </span>
+  );
+}
+
+function Avatar({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <div className={`relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full ${className}`}>{children}</div>;
+}
+
+function AvatarImage({ src, alt, className = '' }: { src?: string; alt?: string; className?: string }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={alt} className={`aspect-square h-full w-full ${className}`} />
+  );
+}
+
+function AvatarFallback({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <div className={`flex h-full w-full items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 ${className}`}>{children}</div>;
+}
+
+export default function PortfolioPreview({ data }: PortfolioPreviewProps) {
   const githubLink = (data.social?.github || data.githubUrl || '').trim();
   const linkedinLink = (data.linkedinUrl || '').trim();
   const twitterLink = (data.social?.twitter || '').trim();
   const instagramLink = (data.social?.instagram || '').trim();
-
-  const hasSocial =
-    githubLink !== '' || linkedinLink !== '' || twitterLink !== '' || instagramLink !== '';
+  const avatarSrc = data.avatar;
 
   return (
-    <aside className="w-full lg:w-96 xl:w-[420px] bg-white dark:bg-[#1A1A1A] rounded-2xl border border-[#E5E7EB] dark:border-[#333333] p-5 md:p-7 h-fit flex-shrink-0">
-      <div className="flex flex-col items-center">
-        <div className="relative w-28 h-28 md:w-32 md:h-32 mb-5 md:mb-6">
-          <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[#C9EAE6] via-[#EAF9FA] to-transparent dark:from-[#1E3A39] dark:via-[#111827] animate-pulse-slow" />
-          <div className="absolute inset-[2px] rounded-3xl bg-white dark:bg-[#111827] overflow-hidden flex items-center justify-center">
-            {/* Avatar image or fallback initial */}
-            {avatarSrc ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={avatarSrc}
-                alt={data.name || 'Profile avatar'}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span className="text-3xl font-semibold text-black dark:text-white">
-                {(data.name || 'U').charAt(0).toUpperCase()}
-              </span>
-            )}
+    <div className="min-h-full bg-white dark:bg-gray-950">
+      <header className="sticky top-0 z-40 w-full border-b bg-white/95 dark:bg-gray-950/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-gray-950/60">
+        <div className="container flex h-20 items-center justify-between max-w-7xl mx-auto px-6">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl font-bold tracking-tight">{data.name || 'Portfolio'}</span>
+          </div>
+          <nav className="hidden md:flex gap-8">
+            <a href="#about" className="text-base font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+              About
+            </a>
+            <a href="#experience" className="text-base font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+              Experience
+            </a>
+            <a href="#projects" className="text-base font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+              Projects
+            </a>
+            <a href="#skills" className="text-base font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+              Skills
+            </a>
+            <a href="#education" className="text-base font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+              Education
+            </a>
+            <a href="#contact" className="text-base font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+              Contact
+            </a>
+          </nav>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="default" asChild className="hidden md:flex">
+              <a href="#contact">Contact Me</a>
+            </Button>
           </div>
         </div>
-        <h1
-          className="text-xl md:text-2xl font-bold text-black dark:text-white mb-2 text-center"
-          style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
-        >
-          {data.name || 'Your Name'}
-        </h1>
-        {data.professionalTitle && (
-          <p className="text-sm md:text-base text-[#60646C] dark:text-[#A0A0A0] bg-[#F3F4F6] dark:bg-[#1F2933] px-4 py-1.5 rounded-lg">
-            {data.professionalTitle}
-          </p>
-        )}
-      </div>
-
-      <div className="h-px bg-[#E5E7EB] dark:bg-[#333333] my-4 md:my-5" />
-
-      {/* Contact details */}
-      <div className="space-y-4 text-sm md:text-base">
-        {data.email && (
-          <InfoRow icon={<Mail className="w-4 h-4" />} label="Email">
-            <a href={`mailto:${data.email}`} className="hover:underline">
-              {data.email}
-            </a>
-          </InfoRow>
-        )}
-        {data.phone && (
-          <InfoRow icon={<Phone className="w-4 h-4" />} label="Phone">
-            <a href={`tel:${data.phone.replace(/\s/g, '')}`} className="hover:underline">
-              {data.phone}
-            </a>
-          </InfoRow>
-        )}
-        {data.birthday && (
-          <InfoRow icon={<Calendar className="w-4 h-4" />} label="Birthday">
-            <span>{data.birthday}</span>
-          </InfoRow>
-        )}
-        {data.location && (
-          <InfoRow icon={<MapPin className="w-4 h-4" />} label="Location">
-            {data.location}
-          </InfoRow>
-        )}
-      </div>
-
-      {/* Social links */}
-      {hasSocial && (
-        <>
-          <div className="h-px bg-[#E5E7EB] dark:bg-[#333333] my-4 md:my-5" />
-          <div className="flex items-center justify-center gap-4">
+      </header>
+      <main className="container py-10 md:py-16 max-w-7xl mx-auto px-6">
+        {/* Hero Section */}
+        <section className="py-16 md:py-20 lg:py-24 space-y-10">
+          <div className="flex flex-col md:flex-row gap-10 items-center">
+            <div className="md:w-2/3 space-y-7">
+              <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-tight">
+                Hi, I'm <span className="text-blue-600 dark:text-blue-400">{data.name || 'Your Name'}</span>
+              </h1>
+              <h2 className="text-3xl md:text-4xl font-semibold text-gray-600 dark:text-gray-400">{data.professionalTitle || 'Professional'}</h2>
+              <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-400 max-w-3xl leading-relaxed">
+                {data.summary || 'A passionate professional with a drive to explore new technologies. I adapt quickly to new environments, allowing me to integrate seamlessly with diverse teams and projects.'}
+              </p>
+              <div className="flex flex-wrap gap-4">
+                <Button asChild className="transition-all duration-300 hover:translate-y-[-2px] hover:shadow-md">
+                  <a href="#contact">Get in Touch</a>
+                </Button>
+                <Button variant="outline" asChild className="transition-all duration-300 hover:translate-y-[-2px] hover:shadow-md hover:bg-gray-100 dark:hover:bg-gray-800">
+                  <a href="#projects">View Projects</a>
+                </Button>
+              </div>
+            </div>
+            <div className="md:w-1/3 flex justify-center">
+              <Avatar className="w-48 h-48 border-4 border-blue-600/20 dark:border-blue-400/20 shadow-lg transition-all duration-500 hover:border-blue-600/40 dark:hover:border-blue-400/40 hover:shadow-xl">
+                {avatarSrc ? (
+                  <AvatarImage src={avatarSrc} alt={data.name || 'Profile'} />
+                ) : (
+                  <AvatarFallback className="text-4xl">{(data.name || 'U').charAt(0).toUpperCase()}</AvatarFallback>
+                )}
+              </Avatar>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-4 justify-center md:justify-start pt-6">
             {githubLink && (
-              <a
-                href={githubLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-10 h-10 rounded-lg bg-[#F3F4F6] dark:bg-[#1F2933] hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors flex items-center justify-center"
-                aria-label="GitHub"
-              >
-                <Github className="w-5 h-5" />
+              <a href={githubLink} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="icon" className="rounded-full transition-all duration-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:scale-110">
+                  <Github className="h-5 w-5" />
+                  <span className="sr-only">GitHub</span>
+                </Button>
               </a>
             )}
             {linkedinLink && (
-              <a
-                href={linkedinLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-10 h-10 rounded-lg bg-[#F3F4F6] dark:bg-[#1F2933] hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors flex items-center justify-center"
-                aria-label="LinkedIn"
-              >
-                <Linkedin className="w-5 h-5" />
+              <a href={linkedinLink} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="icon" className="rounded-full transition-all duration-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:scale-110">
+                  <Linkedin className="h-5 w-5" />
+                  <span className="sr-only">LinkedIn</span>
+                </Button>
               </a>
             )}
-            {twitterLink && (
-              <a
-                href={twitterLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-10 h-10 rounded-lg bg-[#F3F4F6] dark:bg-[#1F2933] hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors flex items-center justify-center"
-                aria-label="Twitter"
-              >
-                <Twitter className="w-5 h-5" />
+            {data.email && (
+              <a href={`mailto:${data.email}`}>
+                <Button variant="outline" size="icon" className="rounded-full transition-all duration-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:scale-110">
+                  <Mail className="h-5 w-5" />
+                  <span className="sr-only">Email</span>
+                </Button>
               </a>
             )}
-            {instagramLink && (
-              <a
-                href={instagramLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-10 h-10 rounded-lg bg-[#F3F4F6] dark:bg-[#1F2933] hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors flex items-center justify-center"
-                aria-label="Instagram"
-              >
-                <Instagram className="w-5 h-5" />
-              </a>
-            )}
-          </div>
-        </>
-      )}
-    </aside>
-  );
-}
-
-function InfoRow({
-  icon,
-  label,
-  children,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className="w-10 h-10 rounded-lg bg-[#F3F4F6] dark:bg-[#1F2933] flex items-center justify-center flex-shrink-0 text-[#111827] dark:text-[#E5E5E5]">
-        {icon}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[11px] md:text-xs text-[#9CA3AF] dark:text-[#6B7280] uppercase mb-1">{label}</p>
-        <div className="text-sm md:text-base text-[#111827] dark:text-[#E5E5E5] truncate">
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* Sections */
-
-function AboutSection({ data }: { data: PortfolioData }) {
-  return (
-    <div className="space-y-8">
-      <div>
-        <h2
-          className="text-2xl md:text-3xl font-bold text-black dark:text-white mb-4"
-          style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
-        >
-          About Me
-        </h2>
-        <div className="w-10 h-1 bg-[#C9EAE6] dark:bg-[#1E3A39] rounded-full mb-4" />
-        <p className="text-base md:text-lg text-[#60646C] dark:text-[#A0A0A0] leading-relaxed">
-          {data.summary ||
-            'Use the form on the left to add a short professional summary. This area will update in real time.'}
-        </p>
-      </div>
-      {data.skills && data.skills.length > 0 && (
-        <div>
-          <h3
-            className="text-base md:text-lg font-semibold text-black dark:text-white mb-3"
-            style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
-          >
-            What I’m good at
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {data.skills.map((skill, index) => (
-              <span
-                key={index}
-                className="px-3.5 py-1.5 rounded-lg bg-[#F3F4F6] dark:bg-[#1F2933] text-sm md:text-base text-[#111827] dark:text-[#E5E5E5]"
-              >
-                {skill}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ResumeSection({ data }: { data: PortfolioData }) {
-  const experience = data.experience ?? [];
-  const education = data.education ?? [];
-
-  return (
-    <div className="space-y-10">
-      {education.length > 0 && (
-        <section>
-          <div className="flex items-center gap-2 md:gap-3 mb-4">
-            <BookOpen className="w-5 h-5 md:w-6 md:h-6 text-[#1E3A39]" />
-            <h2
-              className="text-2xl md:text-3xl font-bold text-black dark:text-white"
-              style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
-            >
-              Education
-            </h2>
-          </div>
-          <div className="w-10 h-1 bg-[#C9EAE6] dark:bg-[#1E3A39] rounded-full mb-4" />
-          <div className="space-y-4">
-            {education.map((edu, index) => (
-              <div
-                key={index}
-                className="relative pl-5 md:pl-6 pb-4 border-l-2 border-[#E5E7EB] dark:border-[#333333] last:pb-0"
-              >
-                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-[#C9EAE6] dark:bg-[#1E3A39]" />
-                <h4
-                  className="text-base md:text-lg font-semibold text-black dark:text-white mb-1"
-                  style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
-                >
-                  {edu.degree || 'Degree'}
-                </h4>
-                {edu.year && (
-                  <p className="text-sm md:text-base text-[#1E3A39] dark:text-[#C9EAE6] mb-1">
-                    {edu.year}
-                  </p>
-                )}
-                <p className="text-sm md:text-base text-[#60646C] dark:text-[#A0A0A0] leading-relaxed">
-                  {edu.institution}
-                </p>
-              </div>
-            ))}
           </div>
         </section>
-      )}
 
-      {experience.length > 0 && (
-        <section>
-          <div className="flex items-center gap-2 md:gap-3 mb-4">
-            <Briefcase className="w-5 h-5 md:w-6 md:h-6 text-[#1E3A39]" />
-            <h3
-              className="text-2xl md:text-3xl font-bold text-black dark:text-white"
-              style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
-            >
-              Experience
-            </h3>
-          </div>
-          <div className="w-10 h-1 bg-[#C9EAE6] dark:bg-[#1E3A39] rounded-full mb-4" />
-          <div className="space-y-4">
-            {experience.map((exp, index) => (
-              <div
-                key={index}
-                className="relative pl-5 md:pl-6 pb-4 border-l-2 border-[#E5E7EB] dark:border-[#333333] last:pb-0"
-              >
-                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-[#1E3A39]" />
-                <h4
-                  className="text-base md:text-lg font-semibold text-black dark:text-white mb-1"
-                  style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
-                >
-                  {exp.title || 'Role'}
-                </h4>
-                {exp.duration && (
-                  <p className="text-sm md:text-base text-[#1E3A39] dark:text-[#C9EAE6] mb-1">
-                    {exp.duration}
-                  </p>
-                )}
-                <p className="text-sm md:text-base text-[#60646C] dark:text-[#A0A0A0] leading-relaxed">
-                  {exp.company}
+        {/* About Section */}
+        <section id="about" className="py-16 scroll-mt-20">
+          <div className="space-y-8">
+            <div className="flex items-center space-x-4">
+              <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight">About Me</h2>
+              <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800"></div>
+            </div>
+            <div className="w-full bg-white dark:bg-gray-950 rounded-xl p-8 md:p-10 shadow-sm border border-gray-200 dark:border-gray-800">
+              <div className="space-y-7">
+                <p className="text-2xl md:text-3xl font-semibold leading-relaxed">
+                  I'm a passionate <span className="text-blue-600 dark:text-blue-400 font-bold">{data.professionalTitle || 'Professional'}</span> with specialized expertise in my field.
                 </p>
-                {exp.description && (
-                  <p className="mt-1 text-sm md:text-base text-[#60646C] dark:text-[#A0A0A0] leading-relaxed">
-                    {exp.description}
-                  </p>
-                )}
+                <div className="space-y-6 text-lg md:text-xl leading-relaxed text-gray-700 dark:text-gray-300">
+                  <p>{data.summary || 'Use the form on the left to add a short professional summary. This area will update in real time.'}</p>
+                  {data.skills && data.skills.length > 0 && (
+                    <div className="pt-6">
+                      <h3 className="text-xl md:text-2xl font-bold mb-4">What I'm good at</h3>
+                      <div className="flex flex-wrap gap-3">
+                        {data.skills.map((skill, index) => (
+                          <Badge key={index} className="text-sm px-4 py-2">{skill}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-4 pt-4">
+                  <Button asChild size="lg" className="transition-all duration-300 hover:translate-y-[-2px] hover:shadow-md">
+                    <a href="#projects" className="flex items-center gap-2">
+                      <span>View My Work</span>
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                  </Button>
+                </div>
               </div>
-            ))}
+            </div>
           </div>
         </section>
-      )}
 
-      {/* Technical skills grid */}
-      <SkillsSection skills={data.skills} />
-    </div>
-  );
-}
-
-function PortfolioSection({ data }: { data: PortfolioData }) {
-  return (
-    <div className="space-y-5">
-      <h2
-        className="text-2xl md:text-3xl font-bold text-black dark:text-white mb-1"
-        style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
-      >
-        Portfolio
-      </h2>
-      <div className="w-10 h-1 bg-[#C9EAE6] dark:bg-[#1E3A39] rounded-full mb-4" />
-      <p className="text-base md:text-lg text-[#60646C] dark:text-[#A0A0A0] mb-4">
-        These sample projects show how your real work could be presented on your final portfolio
-        website.
-      </p>
-      <ProjectsSection />
-    </div>
-  );
-}
-
-function ContactSection({ data }: { data: PortfolioData }) {
-  return (
-    <div className="space-y-5">
-      <h2
-        className="text-2xl md:text-3xl font-bold text-black dark:text-white mb-1"
-        style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
-      >
-        Contact
-      </h2>
-      <div className="w-10 h-1 bg-[#C9EAE6] dark:bg-[#1E3A39] rounded-full mb-4" />
-      <p className="text-base md:text-lg text-[#60646C] dark:text-[#A0A0A0] mb-3">
-        This is how people will reach you from your portfolio.
-      </p>
-      <div className="space-y-2 text-base md:text-lg">
-        {data.email && (
-          <p>
-            <span className="font-medium">Email:</span>{' '}
-            <a href={`mailto:${data.email}`} className="text-[#111827] dark:text-white underline">
-              {data.email}
-            </a>
-          </p>
+        {/* Experience Section */}
+        {data.experience && data.experience.length > 0 && (
+          <section id="experience" className="py-16 scroll-mt-20">
+            <div className="space-y-8">
+              <div className="flex items-center space-x-4">
+                <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight">Work Experience</h2>
+                <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800"></div>
+              </div>
+              <div className="grid gap-6">
+                {data.experience.map((exp, index) => (
+                  <ExperienceCard
+                    key={index}
+                    title={exp.title || 'Role'}
+                    company={exp.company}
+                    period={exp.duration}
+                    description={exp.description || ''}
+                  />
+                ))}
+              </div>
+            </div>
+          </section>
         )}
-        {data.location && (
-          <p>
-            <span className="font-medium">Location:</span> {data.location}
-          </p>
+
+        {/* Projects Section */}
+        {data.projects && data.projects.length > 0 && (
+          <section id="projects" className="py-16 scroll-mt-20">
+            <div className="space-y-8">
+              <div className="flex items-center space-x-4">
+                <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight">Projects</h2>
+                <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800"></div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {data.projects.map((project, index) => (
+                  <ProjectCard
+                    key={index}
+                    title={project.title || 'Project'}
+                    description={project.description || ''}
+                    technologies={project.technologies ? project.technologies.split(',').map((t) => t.trim()) : []}
+                  />
+                ))}
+              </div>
+            </div>
+          </section>
         )}
-      </div>
+
+        {/* Skills Section */}
+        {data.skills && data.skills.length > 0 && (
+          <section id="skills" className="py-16 scroll-mt-20">
+            <div className="space-y-8">
+              <div className="flex items-center space-x-4">
+                <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight">Technical Skills</h2>
+                <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800"></div>
+              </div>
+              <div className="w-full">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {data.skills.map((skill, index) => (
+                    <div
+                      key={index}
+                      className="rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 px-5 py-4 text-center transition-all duration-300 hover:border-blue-600 dark:hover:border-blue-400 hover:shadow-md"
+                    >
+                      <span className="text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100">{skill}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Education Section */}
+        {data.education && data.education.length > 0 && (
+          <section id="education" className="py-16 scroll-mt-20">
+            <div className="space-y-8">
+              <div className="flex items-center space-x-4">
+                <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight">Education</h2>
+                <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800"></div>
+              </div>
+              <div className="grid gap-6">
+                {data.education.map((edu, index) => (
+                  <Card key={index} className="shadow-sm transition-transform duration-300 hover:shadow-md hover:-translate-y-1">
+                    <CardHeader>
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+                        <div>
+                          <CardTitle className="text-2xl md:text-3xl font-bold">{edu.institution || 'Institution'}</CardTitle>
+                          <CardDescription className="text-lg md:text-xl font-semibold mt-2">{edu.degree || 'Degree'}</CardDescription>
+                        </div>
+                        {edu.year && <Badge className="w-fit mt-1 sm:mt-0 text-sm px-3 py-1.5">{edu.year}</Badge>}
+                      </div>
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Contact Section */}
+        <section id="contact" className="py-16 scroll-mt-20">
+          <div className="space-y-8">
+            <div className="flex items-center space-x-4">
+              <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight">Get In Touch</h2>
+              <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800"></div>
+            </div>
+            <Card className="shadow-sm transition-transform duration-300 hover:shadow-md hover:-translate-y-1 w-full">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-3xl md:text-4xl font-bold">Contact Information</CardTitle>
+                <CardDescription className="text-lg md:text-xl mt-2">Feel free to reach out through any of these channels</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-7 pt-6">
+                  {data.email && (
+                    <div className="flex items-center gap-4">
+                      <Button variant="outline" size="icon" className="rounded-full text-blue-600 dark:text-blue-400 shrink-0 w-12 h-12">
+                        <Mail className="h-6 w-6" />
+                      </Button>
+                      <div>
+                        <p className="font-semibold text-lg md:text-xl">Email</p>
+                        <p className="text-base md:text-lg text-gray-600 dark:text-gray-400">{data.email}</p>
+                      </div>
+                    </div>
+                  )}
+                  {data.phone && (
+                    <div className="flex items-center gap-4">
+                      <Button variant="outline" size="icon" className="rounded-full text-blue-600 dark:text-blue-400 shrink-0 w-12 h-12">
+                        <Phone className="h-6 w-6" />
+                      </Button>
+                      <div>
+                        <p className="font-semibold text-lg md:text-xl">Phone</p>
+                        <p className="text-base md:text-lg text-gray-600 dark:text-gray-400">{data.phone}</p>
+                      </div>
+                    </div>
+                  )}
+                  {data.location && (
+                    <div className="flex items-center gap-4">
+                      <Button variant="outline" size="icon" className="rounded-full text-blue-600 dark:text-blue-400 shrink-0 w-12 h-12">
+                        <MapPin className="h-6 w-6" />
+                      </Button>
+                      <div>
+                        <p className="font-semibold text-lg md:text-xl">Location</p>
+                        <p className="text-base md:text-lg text-gray-600 dark:text-gray-400">{data.location}</p>
+                      </div>
+                    </div>
+                  )}
+                  {(githubLink || linkedinLink) && (
+                    <div className="pt-6">
+                      <p className="font-semibold text-lg md:text-xl mb-4">Social Profiles</p>
+                      <div className="flex gap-3">
+                        {githubLink && (
+                          <a href={githubLink} target="_blank" rel="noopener noreferrer">
+                            <Button variant="outline" size="icon" className="rounded-full transition-all duration-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:scale-110">
+                              <Github className="h-5 w-5" />
+                              <span className="sr-only">GitHub</span>
+                            </Button>
+                          </a>
+                        )}
+                        {linkedinLink && (
+                          <a href={linkedinLink} target="_blank" rel="noopener noreferrer">
+                            <Button variant="outline" size="icon" className="rounded-full transition-all duration-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:scale-110">
+                              <Linkedin className="h-5 w-5" />
+                              <span className="sr-only">LinkedIn</span>
+                            </Button>
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }
 
-/* Extra sections based on provided templates */
-
-function SkillsSection({ skills }: { skills?: string[] }) {
-  const fallbackSkills = {
-    frontend: ['React', 'Next.js', 'TypeScript', 'Tailwind CSS', 'HTML/CSS', 'JavaScript'],
-    backend: ['Node.js', 'Express', 'PostgreSQL', 'MongoDB', 'REST APIs', 'GraphQL'],
-    tools: ['Git', 'Docker', 'AWS', 'Vercel', 'CI/CD', 'Testing'],
-  };
-
-  const hasDynamic = skills && skills.length > 0;
-  const allSkills = hasDynamic ? skills! : [...fallbackSkills.frontend, ...fallbackSkills.backend, ...fallbackSkills.tools];
-  const perCol = Math.ceil(allSkills.length / 3) || 1;
-  const col1 = allSkills.slice(0, perCol);
-  const col2 = allSkills.slice(perCol, perCol * 2);
-  const col3 = allSkills.slice(perCol * 2);
-
+function ExperienceCard({ title, company, period, description }: { title: string; company: string; period: string; description: string }) {
   return (
-    <section className="mt-8 rounded-2xl border border-[#E5E7EB] dark:border-[#333333] bg-white dark:bg-[#1A1A1A] p-6 md:p-7">
-      <h2
-        className="mb-5 text-xl md:text-2xl font-bold tracking-tight text-black dark:text-white"
-        style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
-      >
-        Technical Skills
-      </h2>
-      <div className="grid gap-6 md:grid-cols-3 text-sm md:text-base">
-        <SkillColumn title="Frontend Development" items={col1} />
-        <SkillColumn title="Backend Development" items={col2} />
-        <SkillColumn title="Tools & Technologies" items={col3} />
-      </div>
-    </section>
-  );
-}
-
-function SkillColumn({ title, items }: { title: string; items: string[] }) {
-  if (!items.length) return null;
-  return (
-    <div>
-      <h3 className="mb-3 text-xs md:text-sm font-semibold uppercase tracking-[0.2em] text-[#9CA3AF] dark:text-[#6B7280]">
-        {title}
-      </h3>
-      <ul className="space-y-2">
-        {items.map((skill) => (
-          <li key={skill} className="text-sm md:text-base text-[#111827] dark:text-[#E5E5E5]">
-            {skill}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-const demoProjects = [
-  {
-    title: 'E-Commerce Platform',
-    description:
-      'Full-stack e-commerce solution with payments, inventory management, and an admin dashboard.',
-    tags: ['Next.js', 'PostgreSQL', 'Stripe', 'Tailwind'],
-    image: '/modern-ecommerce-dashboard.png',
-  },
-  {
-    title: 'Task Management App',
-    description:
-      'Collaborative task management tool with real-time updates, team workspaces, and progress tracking.',
-    tags: ['React', 'Node.js', 'MongoDB', 'WebSocket'],
-    image: '/task-management-interface.png',
-  },
-  {
-    title: 'Analytics Dashboard',
-    description:
-      'Data visualization dashboard with interactive charts, KPIs, and exportable reports.',
-    tags: ['TypeScript', 'Express', 'Chart.js', 'PostgreSQL'],
-    image: '/analytics-dashboard-charts.png',
-  },
-  {
-    title: 'Social Media API',
-    description:
-      'RESTful API for social networking with authentication, posts, and real-time notifications.',
-    tags: ['Node.js', 'Express', 'JWT', 'Redis'],
-    image: '/api-documentation-interface.png',
-  },
-  {
-    title: 'Blog Platform',
-    description:
-      'Content platform with markdown support, SEO optimizations, and comment moderation tools.',
-    tags: ['Next.js', 'MDX', 'Supabase', 'TypeScript'],
-    image: '/modern-blog-interface.jpg',
-  },
-  {
-    title: 'Weather Forecast App',
-    description:
-      'Real-time weather app with geolocation, interactive maps, and 7-day forecasts.',
-    tags: ['React', 'OpenWeather API', 'Mapbox', 'Tailwind'],
-    image: '/weather-app-interface.png',
-  },
-];
-
-function ProjectsSection() {
-  return (
-    <section className="mt-2">
-      <div className="grid gap-4 md:grid-cols-2">
-        {demoProjects.map((project) => (
-          <ProjectCard key={project.title} {...project} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-interface ProjectCardProps {
-  title: string;
-  description: string;
-  tags: string[];
-  image: string;
-}
-
-function ProjectCard({ title, description, tags, image }: ProjectCardProps) {
-  return (
-    <article className="group cursor-pointer bg-white dark:bg-[#1A1A1A] rounded-xl border border-[#E5E7EB] dark:border-[#333333] overflow-hidden hover:border-[#C9EAE6] dark:hover:border-[#1E3A39] transition-all duration-300">
-      <div className="mb-3 overflow-hidden bg-[#F3F4F6] dark:bg-[#111827]">
-        <Image
-          src={image || '/placeholder.svg'}
-          alt={title}
-          width={600}
-          height={400}
-          className="aspect-[3/2] w-full object-cover transition-transform duration-300 group-hover:scale-105"
-        />
-      </div>
-      <div className="px-4 pb-4">
-        <h3
-          className="mb-2 text-sm md:text-base font-semibold tracking-tight text-black dark:text-white group-hover:text-[#374151] dark:group-hover:text-[#D1D5DB] transition-colors"
-          style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
-        >
-          {title}
-        </h3>
-        <p className="mb-3 text-xs md:text-sm text-[#60646C] dark:text-[#A0A0A0] leading-relaxed">
-          {description}
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          {tags.map((tag) => (
-            <span
-              key={tag}
-              className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] dark:border-[#333333] bg-[#F9FAFB] dark:bg-[#111827] px-2 py-0.5 text-[10px] text-[#4B5563] dark:text-[#D1D5DB]"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-[#C9EAE6] dark:bg-[#1E3A39]" />
-              {tag}
-            </span>
-          ))}
+    <Card className="shadow-sm transition-transform duration-300 hover:shadow-md hover:-translate-y-1">
+      <CardHeader className="pb-4">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3">
+          <div>
+            <CardTitle className="text-2xl md:text-3xl font-bold tracking-tight">
+              <span className="text-blue-600 dark:text-blue-400">{title}</span> at <span className="font-semibold">{company}</span>
+            </CardTitle>
+          </div>
+          <Badge className="w-fit text-sm px-3 py-1.5">{period}</Badge>
         </div>
-      </div>
-    </article>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-base md:text-lg text-gray-600 dark:text-gray-400 leading-relaxed">{description}</p>
+      </CardContent>
+    </Card>
   );
 }
+
+function ProjectCard({ title, description, technologies }: { title: string; description: string; technologies: string[] }) {
+  return (
+    <Card className="shadow-sm transition-transform duration-300 hover:shadow-md hover:-translate-y-1">
+      <CardHeader>
+        <CardTitle className="text-2xl md:text-3xl font-bold">{title}</CardTitle>
+        <CardDescription className="text-base md:text-lg mt-2">{description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {technologies.length > 0 && (
+          <div className="flex flex-wrap gap-3 mt-5">
+            {technologies.map((tech, index) => (
+              <Badge key={index} className="text-sm px-3 py-1.5">{tech}</Badge>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+

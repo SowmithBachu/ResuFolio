@@ -18,6 +18,11 @@ interface ResumeData {
     year: string;
   }>;
   skills?: string[];
+  projects?: Array<{
+    title: string;
+    description: string;
+    technologies?: string;
+  }>;
 }
 
 
@@ -50,6 +55,10 @@ async function parseResumeWithGemini(imageData: string[]): Promise<ResumeData> {
    - Institution name
    - Year (optional)
 7. SKILLS - Only the most important/relevant skills (top 8-12 skills, prioritize technical and relevant skills)
+8. PROJECTS - Only the TOP 2-4 most relevant projects with:
+   - Project title
+   - Short description (1–3 sentences, concise)
+   - Key technologies used (as a single string, e.g. "React, Node.js, PostgreSQL")
 
 EXCLUDE: Phone numbers, certifications, and less relevant experience/education. Focus on what would be displayed on a professional portfolio website.
 
@@ -74,10 +83,17 @@ Return ONLY valid JSON without any markdown formatting, code blocks, or explanat
       "year": "Year"
     }
   ],
-  "skills": ["Skill 1", "Skill 2", "Skill 3"]
+  "skills": ["Skill 1", "Skill 2", "Skill 3"],
+  "projects": [
+    {
+      "title": "Project Title",
+      "description": "Short description of the project.",
+      "technologies": "React, Node.js, PostgreSQL"
+    }
+  ]
 }
 
-IMPORTANT: Keep all text concise and portfolio-focused. Limit experience to top 2-3 positions, education to highest degree, and skills to 8-12 most relevant. If a field is not present, use null for strings or empty arrays []. Return ONLY the JSON object, nothing else.`;
+IMPORTANT: Keep all text concise and portfolio-focused. Limit experience to top 2-3 positions, education to highest degree, skills to 8-12 most relevant, and projects to the 2-4 strongest ones. If a field is not present, use null for strings or empty arrays []. Return ONLY the JSON object, nothing else.`;
 
   try {
     // Validate and prepare image data
@@ -142,6 +158,7 @@ IMPORTANT: Keep all text concise and portfolio-focused. Limit experience to top 
       experience: Array.isArray(parsedData.experience) ? parsedData.experience : [],
       education: Array.isArray(parsedData.education) ? parsedData.education : [],
       skills: Array.isArray(parsedData.skills) ? parsedData.skills : [],
+      projects: Array.isArray(parsedData.projects) ? parsedData.projects : [],
     } as ResumeData;
   } catch (error: any) {
     console.error('Error parsing resume with Gemini:', error);

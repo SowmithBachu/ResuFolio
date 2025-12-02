@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, Upload, Loader } from 'lucide-react';
 import ResumePreview from '../components/ResumePreview';
 import PortfolioPreview from '../components/PortfolioPreview';
@@ -10,8 +11,8 @@ interface ResumeData {
   email?: string;
   location?: string;
   professionalTitle?: string;
-    githubUrl?: string;
-    linkedinUrl?: string;
+  githubUrl?: string;
+  linkedinUrl?: string;
   summary?: string;
   experience?: Array<{
     title: string;
@@ -25,6 +26,11 @@ interface ResumeData {
     year: string;
   }>;
   skills?: string[];
+  projects?: Array<{
+    title: string;
+    description: string;
+    technologies?: string;
+  }>;
 }
 
 function EditPortfolioView({ initialData, onDataChange }: { initialData: ResumeData; onDataChange: (data: ResumeData) => void }) {
@@ -157,6 +163,7 @@ export default function UploadPage() {
   const [resumeData, setResumeData] = useState<ResumeData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const router = useRouter();
 
   const pdfToImages = async (file: File): Promise<string[]> => {
     try {
@@ -211,8 +218,6 @@ export default function UploadPage() {
         setFile(selectedFile);
         setError(null);
         setResumeData(null);
-        // Auto-submit when file is selected
-        await processFile(selectedFile);
       } else {
         setError('Please upload a PDF file');
         setFile(null);
@@ -260,8 +265,18 @@ export default function UploadPage() {
       }
 
       setResumeData(result.data);
-      // Store in localStorage
+      
+      // Generate ID and store portfolio data with ID for sharing
+      const id =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : Math.random().toString(36).slice(2);
+      
+      // Store in localStorage for workspace route and sharing
       localStorage.setItem('portfolioData', JSON.stringify(result.data));
+      localStorage.setItem(`portfolio_${id}`, JSON.stringify(result.data));
+      
+      router.push(`/upload/${id}`);
     } catch (err: any) {
       console.error('Error processing resume:', err);
       setError(err.message || 'An error occurred while processing your resume');
@@ -295,22 +310,16 @@ export default function UploadPage() {
         setFile(droppedFile);
         setError(null);
         setResumeData(null);
-        await processFile(droppedFile);
       } else {
         setError('Please upload a PDF file');
       }
     }
   };
 
-  // Show side-by-side workspace if we have resume data
-  if (resumeData) {
-    return (
-      <EditPortfolioView 
-        initialData={resumeData} 
-        onDataChange={setResumeData}
-      />
-    );
-  }
+  const handleProceed = async () => {
+    if (!file || uploading || processing) return;
+    await processFile(file);
+  };
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#121212]">
@@ -412,6 +421,14 @@ export default function UploadPage() {
                   >
                     PDF files only • Max 10MB
                   </p>
+                  {file && (
+                    <p className="mb-4 text-sm text-[#60646C] dark:text-[#A0A0A0]">
+                      Selected file:{' '}
+                      <span className="font-medium text-black dark:text-white">
+                        {file.name}
+                      </span>
+                    </p>
+                  )}
                   <div className="inline-flex items-center gap-2 px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-lg text-sm font-medium">
                     Choose File
                   </div>
@@ -419,6 +436,28 @@ export default function UploadPage() {
               )}
             </div>
           </div>
+
+          {/* Selected file + Proceed button (outside the box) */}
+          {file && !uploading && !processing && (
+            <div className="mt-6 flex flex-col items-center gap-3">
+              
+              <button
+                type="button"
+                onClick={handleProceed}
+                disabled={uploading || processing}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-medium bg-black dark:bg-white text-white dark:text-black hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition"
+              >
+                {loading ? (
+                  <>
+                    <Loader className="w-4 h-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>Proceed</>
+                )}
+              </button>
+            </div>
+          )}
 
           {error && (
             <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">

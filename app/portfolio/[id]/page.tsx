@@ -1,0 +1,131 @@
+'use client';
+
+import { useEffect, useState, Suspense } from 'react';
+import { useParams } from 'next/navigation';
+import PortfolioPreview from '../../components/PortfolioPreview';
+import { Loader } from 'lucide-react';
+
+interface PortfolioData {
+  name?: string;
+  email?: string;
+  location?: string;
+  professionalTitle?: string;
+  phone?: string;
+  birthday?: string;
+  avatar?: string;
+  githubUrl?: string;
+  linkedinUrl?: string;
+  social?: {
+    github?: string;
+    twitter?: string;
+    instagram?: string;
+  };
+  summary?: string;
+  experience?: Array<{
+    title: string;
+    company: string;
+    duration: string;
+    description: string;
+  }>;
+  education?: Array<{
+    degree: string;
+    institution: string;
+    year: string;
+  }>;
+  skills?: string[];
+  projects?: Array<{
+    title: string;
+    description: string;
+    technologies?: string;
+  }>;
+}
+
+function PortfolioContent() {
+  const params = useParams();
+  const portfolioId = params?.id as string;
+  const [data, setData] = useState<PortfolioData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!portfolioId || typeof window === 'undefined') {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Try to get portfolio data from localStorage with the ID
+      const stored = localStorage.getItem(`portfolio_${portfolioId}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setData(parsed);
+      } else {
+        // Fallback: try to get from URL params (for direct sharing)
+        const urlParams = new URLSearchParams(window.location.search);
+        const encodedData = urlParams.get('data');
+        if (encodedData) {
+          try {
+            const decoded = decodeURIComponent(encodedData);
+            setData(JSON.parse(decoded));
+          } catch (e) {
+            console.error('Failed to parse URL data:', e);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load portfolio data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [portfolioId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-[#121212] flex items-center justify-center">
+        <div className="text-center">
+          <Loader className="animate-spin mx-auto mb-4 text-black dark:text-white" size={48} />
+          <p className="text-zinc-600 dark:text-zinc-400">Loading portfolio...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-[#121212] flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-6">
+          <h1 className="text-2xl font-bold text-black dark:text-white mb-4">Portfolio Not Found</h1>
+          <p className="text-zinc-600 dark:text-zinc-400 mb-6">
+            This portfolio link may have expired or doesn't exist. Please check the link and try again.
+          </p>
+          <a
+            href="/"
+            className="inline-block px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:opacity-90 transition-opacity"
+          >
+            Go to Home
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-white dark:bg-[#121212]">
+      <PortfolioPreview data={data} />
+    </div>
+  );
+}
+
+export default function ShareablePortfolioPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-white dark:bg-[#121212] flex items-center justify-center">
+          <Loader className="animate-spin text-black dark:text-white" size={48} />
+        </div>
+      }
+    >
+      <PortfolioContent />
+    </Suspense>
+  );
+}
+
