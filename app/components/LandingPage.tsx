@@ -1,6 +1,6 @@
 'use client';
 
-import { Sparkles, FileText, Edit, Eye, ArrowRight } from 'lucide-react';
+import { Sparkles, FileText, Edit, Eye, ArrowRight, LogIn } from 'lucide-react';
 
 interface LandingPageProps {
   onGetStarted?: () => void;
@@ -86,15 +86,25 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
               Upload your PDF resume and we'll instantly create a stunning,
               editable portfolio website. No design skills needed.
             </p>
-            {/* CTA Button */}
-            <a
-              href="/upload"
-              className="inline-flex items-center gap-3 px-8 py-4 bg-black dark:bg-white text-white dark:text-black rounded-xl text-[18px] font-semibold hover:opacity-90 transition-opacity"
-              style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
-            >
-              Get Started
-              <ArrowRight size={20} />
-            </a>
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <a
+                href="/upload"
+                className="inline-flex items-center gap-3 px-8 py-4 bg-black dark:bg-white text-white dark:text-black rounded-xl text-[18px] font-semibold hover:opacity-90 transition-opacity"
+                style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+              >
+                Get Started
+                <ArrowRight size={20} />
+              </a>
+              <a
+                href="/api/auth/google"
+                className="inline-flex items-center gap-3 px-6 py-3 border border-[#D0D0D0] dark:border-[#3A3A3A] rounded-xl text-[16px] font-semibold text-black dark:text-white hover:bg-[#F5F5F5] dark:hover:bg-[#1F1F1F] transition-colors"
+                style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+              >
+                <LogIn size={18} />
+                Login with Google
+              </a>
+            </div>
             {/* Features */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-[800px] mx-auto mt-20">
               <div className="text-center">
