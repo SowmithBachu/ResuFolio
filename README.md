@@ -9,7 +9,9 @@ Transform your PDF resume into a stunning, professional portfolio website with A
 - 🤖 **AI-Powered Parsing** - Uses Google Gemini AI to extract structured information from your resume
 - 🎨 **Automatic Portfolio Generation** - Instantly creates a modern, responsive portfolio website
 - ✏️ **Live Editing** - Split-screen workspace to edit and preview your portfolio in real-time
+- 🧩 **UI Customization Workspace** - Drag-and-drop minimal UI elements (timelines, stats, achievements, progress bars) onto your portfolio
 - 🔗 **Shareable Links** - Generate unique shareable URLs for your portfolio
+- 💾 **Downloadable Source Code** - Export your portfolio as a standalone HTML file with built-in dark/light mode toggle
 - 📱 **Responsive Design** - Beautiful portfolio that works on all devices
 
 ### Portfolio Sections
@@ -29,43 +31,9 @@ Transform your PDF resume into a stunning, professional portfolio website with A
 
 ### Modern UI/UX
 - 🌓 **Dark Mode Support** - Automatic dark mode based on system preferences
-- 🎨 **Modern Design** - Clean, professional aesthetic with smooth animations
-- 📐 **Resizable Panels** - Adjustable split-screen workspace
+- 🎨 **Modern Design** - Clean, professional aesthetic with smooth animations and minimal, tidy UI
+- 📐 **Resizable Panels** - Adjustable split-screen workspace with a styled draggable divider
 - ✨ **Smooth Interactions** - Hover effects and transitions throughout
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js 18+ installed
-- A Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
-
-### Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone <repository-url>
-   cd resume
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables:**
-   Create a `.env.local` file in the root directory:
-   ```bash
-   GEMINI_API_KEY=your_gemini_api_key_here
-   ```
-
-4. **Run the development server:**
-```bash
-npm run dev
-   ```
-
-5. **Open your browser:**
-   Navigate to [http://localhost:3000](http://localhost:3000)
 
 ## 📖 Usage
 
@@ -85,19 +53,30 @@ npm run dev
 3. **Add Content**
    - Click "Add New" buttons in any section to add more items
    - Click the trash icon to remove items
-   - All changes are saved automatically
+   - All changes are saved automatically (Supabase + localStorage fallback)
 
-4. **Share Your Portfolio**
+4. **Customize UI**
+   - From the edit workspace, click **Customize UI**
+   - Drag and drop UI elements from the left palette onto sections of your portfolio
+   - Edit each element’s content (timeline items, stats, achievements, progress bars, etc.)
+
+5. **Share Your Portfolio**
    - Click "Share Link" to copy your portfolio URL
    - Share the link with anyone - it's publicly viewable
    - The portfolio link is read-only for viewers
+
+6. **Download Source Code**
+   - Click **Download Source** in the header (Edit or Customize workspace, or share page)
+   - Opens a standalone HTML file with your current portfolio and custom UI elements
+   - Includes a dark/light mode toggle and can be hosted on any static hosting provider
 
 ### Portfolio Routes
 
 - `/` - Landing page
 - `/upload` - Upload and parse resume
-- `/upload/[id]` - Edit portfolio workspace
-- `/portfolio/[id]` - View shareable portfolio (read-only)
+- `/upload/[id]` - Edit portfolio workspace (live editor)
+- `/customize/[id]` - UI customization workspace with drag-and-drop elements
+- `/portfolio/[id]` - View shareable portfolio (read-only, with download button)
 
 ## 🛠️ Technology Stack
 
@@ -151,29 +130,31 @@ The application uses Google's Gemini AI to intelligently extract:
 - Right panel: Live portfolio preview
 - Changes sync automatically and appear instantly
 
+### UI Customization & Download
+- Separate `/customize/[id]` workspace for drag-and-drop UI elements
+- Edit the content of each custom element (steps, timelines, stats, achievements, progress bars)
+- Download a fully self-contained HTML file with dark/light mode toggle
+
 ### Shareable Portfolio
-- Each portfolio gets a unique ID
+- Each portfolio gets a unique ID stored in Supabase
 - Shareable URL format: `/portfolio/[unique-id]`
-- Publicly accessible (read-only)
-- No login required for viewers
+- Share links built from `NEXT_PUBLIC_APP_BASE_URL` in production (fallback to browser origin in development)
+- Publicly accessible (read-only) with a download button
 
 ## 📝 Notes
 
 - The application processes PDFs by converting them to images and sending them to Gemini for OCR and structured extraction
 - Ensure your PDFs are clear and readable for best parsing results
-- Portfolio data is stored in browser localStorage (client-side only)
+- Portfolio data is persisted in **Supabase** (per authenticated user) with **localStorage** as a fallback/cache
 - The Gemini API key is required for the application to function
-- All editing happens client-side with real-time preview
+- All editing and UI customization happen client-side with real-time preview; saving and sharing use API routes backed by Supabase
 
 ## 🔮 Future Enhancements
 
-- Database integration for persistent storage
-- User authentication and accounts
 - Payment integration for premium features
 - Custom domain support
 - Analytics dashboard
 - Multiple portfolio templates
-- Export portfolio as static site
 
 ## 📄 License
 

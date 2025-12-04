@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, X, Settings2, Share2, Check, Copy, Download } from 'lucide-react';
 import PortfolioPreview from '../../components/PortfolioPreview';
@@ -177,7 +177,16 @@ function CustomizePortfolioView({ initialData, portfolioId }: { initialData: Res
     setEditingElementId(null);
   };
 
-  const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/portfolio/${portfolioId}` : '';
+  const shareUrl = useMemo(() => {
+    const envBase = process.env.NEXT_PUBLIC_APP_BASE_URL?.replace(/\/$/, '');
+    if (envBase) {
+      return `${envBase}/portfolio/${portfolioId}`;
+    }
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}/portfolio/${portfolioId}`;
+    }
+    return '';
+  }, [portfolioId]);
 
   const handleCopyShareLink = async () => {
     try {
@@ -255,11 +264,15 @@ function CustomizePortfolioView({ initialData, portfolioId }: { initialData: Res
       <div className="bg-gradient-to-r from-white to-gray-50 dark:from-zinc-900 dark:to-zinc-950 border-b-2 border-gray-200 dark:border-zinc-800 px-6 py-5 z-20 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-5">
-            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#EAF9FA] to-[#DDE3FF] dark:from-[#1E3A39] dark:to-[#2A2D4A] border-2 border-[#C9EAE6] dark:border-[#2A5A58] shadow-md">
-              <span className="text-xl font-extrabold text-black dark:text-white tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+            <a
+              href="/"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#EAF9FA] to-[#DDE3FF] dark:from-[#1E3A39] dark:to-[#2A2D4A] border-2 border-[#C9EAE6] dark:border-[#2A5A58] shadow-md transition-transform hover:scale-[1.01]"
+              style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+            >
+              <span className="text-xl font-extrabold text-black dark:text-white tracking-tight">
                 ResuFolio
               </span>
-            </div>
+            </a>
             <div className="h-8 w-px bg-gradient-to-b from-gray-300 to-gray-400 dark:from-zinc-600 dark:to-zinc-700"></div>
             <div className="flex items-center gap-3">
               <Settings2 className="w-5 h-5 text-gray-700 dark:text-gray-300" />
@@ -275,28 +288,32 @@ function CustomizePortfolioView({ initialData, portfolioId }: { initialData: Res
           <div className="flex items-center gap-3">
             <a
               href={`/upload/${portfolioId}`}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-zinc-800"
+              style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Edit
             </a>
             <button
               onClick={() => downloadPortfolioHTML(portfolioData, portfolioData.customElements || [])}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 dark:bg-green-500 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition-all text-sm font-medium shadow-sm hover:shadow-md"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-green-600 dark:bg-green-500 text-white hover:bg-green-700 dark:hover:bg-green-600 transition-all shadow-sm hover:shadow-md"
+              style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             >
               <Download className="w-4 h-4" />
               Download Source
             </button>
             <button
               onClick={handleOpenShareModal}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-gray-100 rounded-lg hover:bg-gray-200 dark:hover:bg-zinc-700 transition-all text-sm font-medium shadow-sm hover:shadow-md"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-zinc-700 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-all shadow-sm hover:shadow-md"
+              style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             >
               <Share2 className="w-4 h-4" />
               Share Link
             </button>
             <a
               href="/"
-              className="px-4 py-2 bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-gray-100 rounded-lg hover:bg-gray-200 dark:hover:bg-zinc-700 transition-all text-sm font-medium shadow-sm hover:shadow-md"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-gray-50 dark:bg-zinc-900 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all shadow-sm hover:shadow-md"
+              style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             >
               ← Home
             </a>

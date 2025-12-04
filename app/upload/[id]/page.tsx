@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Share2, Check, Copy, X, Sparkles, Download } from 'lucide-react';
 import ResumePreview from '../../components/ResumePreview';
@@ -95,7 +95,16 @@ function EditPortfolioView({ initialData, portfolioId }: { initialData: ResumeDa
     }
   };
 
-  const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/portfolio/${portfolioId}` : '';
+  const shareUrl = useMemo(() => {
+    const envBase = process.env.NEXT_PUBLIC_APP_BASE_URL?.replace(/\/$/, '');
+    if (envBase) {
+      return `${envBase}/portfolio/${portfolioId}`;
+    }
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}/portfolio/${portfolioId}`;
+    }
+    return '';
+  }, [portfolioId]);
 
   const handleCopyShareLink = async () => {
     try {
@@ -148,18 +157,21 @@ function EditPortfolioView({ initialData, portfolioId }: { initialData: ResumeDa
       <div className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-6 py-4 z-20">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#EAF9FA] to-[#DDE3FF] dark:from-[#1E3A39] dark:to-[#2A2D4A] border border-[#C9EAE6] dark:border-[#2A5A58]">
-              <span className="text-lg font-extrabold text-black dark:text-white tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+            <a
+              href="/"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#EAF9FA] to-[#DDE3FF] dark:from-[#1E3A39] dark:to-[#2A2D4A] border border-[#C9EAE6] dark:border-[#2A5A58] transition-transform hover:scale-[1.01]"
+              style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+            >
+              <span className="text-lg font-extrabold text-black dark:text-white tracking-tight">
                 ResuFolio
               </span>
-            </div>
-           
-          
+            </a>
           </div>
           <div className="flex items-center gap-3">
             <a
               href={`/customize/${portfolioId}`}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors text-sm font-medium"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors shadow-sm hover:shadow-md"
+              style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             >
               <Sparkles className="w-4 h-4" />
               Customize UI
@@ -169,21 +181,24 @@ function EditPortfolioView({ initialData, portfolioId }: { initialData: ResumeDa
                 e.preventDefault();
                 downloadPortfolioHTML(portfolioData, portfolioData.customElements || []);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 dark:bg-green-500 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition-colors text-sm font-medium"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-green-600 dark:bg-green-500 text-white hover:bg-green-700 dark:hover:bg-green-600 transition-colors shadow-sm hover:shadow-md"
+              style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             >
               <Download className="w-4 h-4" />
               Download Source
             </button>
             <button
               onClick={handleOpenShareModal}
-              className="flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-black dark:text-zinc-50 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors text-sm font-medium"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 text-black dark:text-zinc-50 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors shadow-sm hover:shadow-md"
+              style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             >
               <Share2 className="w-4 h-4" />
               Share Link
             </button>
             <a
               href="/"
-              className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-black dark:text-zinc-50 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors text-sm font-medium"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-black dark:text-zinc-50 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shadow-sm hover:shadow-md"
+              style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             >
               ← Back to Home
             </a>
