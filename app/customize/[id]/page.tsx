@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, X, Settings2, Share2, Check, Copy, Download } from 'lucide-react';
 import PortfolioPreview from '../../components/PortfolioPreview';
+import PortfolioPreview1 from '../../components/PortfolioPreview1';
 import { UIElementsPalette, renderCustomElement, UIElement } from '../../components/UIElements';
 import { ElementEditor } from '../../components/ElementEditor';
 import { downloadPortfolioHTML } from '../../utils/generatePortfolioHTML';
@@ -47,10 +48,11 @@ interface ResumeData {
     props?: any;
     section?: string;
   }>;
+  template?: '1' | '2';
 }
 
 function CustomizePortfolioView({ initialData, portfolioId }: { initialData: ResumeData; portfolioId: string }) {
-  const [portfolioData, setPortfolioData] = useState<ResumeData>(initialData);
+  const [portfolioData, setPortfolioData] = useState<ResumeData>({ ...initialData, template: initialData.template || '1' });
   const [split, setSplit] = useState(30); // percentage width of the left panel
   const [draggedElement, setDraggedElement] = useState<UIElement | null>(null);
   const [dropZones, setDropZones] = useState<{ [key: string]: boolean }>({});
@@ -284,6 +286,21 @@ function CustomizePortfolioView({ initialData, portfolioId }: { initialData: Res
             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
               Drag and drop UI elements onto your portfolio
             </span>
+            <div className="h-8 w-px bg-gradient-to-b from-gray-300 to-gray-400 dark:from-zinc-600 dark:to-zinc-700"></div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Template:</span>
+              <select
+                value={portfolioData.template || '1'}
+                onChange={(e) => {
+                  const newTemplate = e.target.value as '1' | '2';
+                  handleDataChange({ ...portfolioData, template: newTemplate });
+                }}
+                className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm font-medium text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="1">Template 1 (Minimal)</option>
+                <option value="2">Template 2 (Bold)</option>
+              </select>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <a
@@ -359,16 +376,29 @@ function CustomizePortfolioView({ initialData, portfolioId }: { initialData: Res
           style={{ width: `${100 - split}%`, minWidth: '30%', maxWidth: '80%' }}
         >
           <div className="flex-1 overflow-y-auto">
-            <PortfolioPreview 
-              data={portfolioData} 
-              customElements={portfolioData.customElements} 
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              isCustomizing={true}
-              activeDropZone={Object.keys(dropZones)[0] || null}
-              onEditElement={handleEditElement}
-            />
+            {portfolioData.template === '2' ? (
+              <PortfolioPreview1 
+                data={portfolioData} 
+                customElements={portfolioData.customElements} 
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                isCustomizing={true}
+                activeDropZone={Object.keys(dropZones)[0] || null}
+                onEditElement={handleEditElement}
+              />
+            ) : (
+              <PortfolioPreview 
+                data={portfolioData} 
+                customElements={portfolioData.customElements} 
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                isCustomizing={true}
+                activeDropZone={Object.keys(dropZones)[0] || null}
+                onEditElement={handleEditElement}
+              />
+            )}
           </div>
         </div>
       </div>

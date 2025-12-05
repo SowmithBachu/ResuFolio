@@ -303,9 +303,12 @@ async function parseWithRotatingGeminiKeys(imageData: string[]): Promise<ResumeD
       const status = (error as any)?.status || (error as any)?.statusCode;
       const shouldRotate =
         status === 429 ||
+        status === 503 ||
         message.includes('rate limit') ||
         message.includes('quota') ||
         message.includes('resource_exhausted') ||
+        message.includes('overloaded') ||
+        message.includes('service unavailable') ||
         // Also rotate on invalid / missing API key so the next key can be tried
         message.includes('invalid or missing gemini api key') ||
         message.includes('api key');

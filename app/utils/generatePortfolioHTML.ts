@@ -702,24 +702,6 @@ export function generatePortfolioHTML(data: PortfolioData, customElements: Custo
       gap: 1.5rem;
     }
 
-    /* Theme Toggle */
-    .theme-toggle {
-      border: 1px solid #d1d5db;
-      background: rgba(0, 0, 0, 0.05);
-      color: #111827;
-      border-radius: 9999px;
-      padding: 0.45rem 0.9rem;
-      font-size: 0.85rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-
-    .theme-toggle:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    }
-
     /* Dark mode overrides */
     body.dark {
       color: #f3f4f6;
@@ -737,13 +719,6 @@ export function generatePortfolioHTML(data: PortfolioData, customElements: Custo
 
     body.dark nav a:hover {
       color: #60a5fa;
-    }
-
-    body.dark .theme-toggle {
-      border-color: #374151;
-      background: rgba(255, 255, 255, 0.1);
-      color: #f3f4f6;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
     }
 
     body.dark .card,
@@ -833,6 +808,45 @@ export function generatePortfolioHTML(data: PortfolioData, customElements: Custo
     body.dark .progress-fill {
       background: #60a5fa;
     }
+
+    body.dark .btn-primary {
+      background: #fff;
+      color: #000;
+    }
+
+    body.dark .btn-primary:hover {
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    body.dark .btn-outline {
+      border-color: #374151;
+      color: #f3f4f6;
+    }
+
+    body.dark .btn-outline:hover {
+      background: #1f2937;
+    }
+
+    body.dark .social-btn {
+      border-color: #374151;
+      background: #1f2937;
+      color: #f3f4f6;
+    }
+
+    body.dark .social-btn:hover {
+      background: #374151;
+      color: #fff;
+    }
+
+    body.dark h1,
+    body.dark h2,
+    body.dark h3 {
+      color: #f3f4f6;
+    }
+
+    body.dark .section-divider {
+      background: #1f2937;
+    }
     
     @media (max-width: 768px) {
       h1 {
@@ -872,7 +886,6 @@ export function generatePortfolioHTML(data: PortfolioData, customElements: Custo
         <span style="font-size: 1.5rem; font-weight: 700;">${escapeHtml(portfolioName)}</span>
       </div>
       <div style="display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; justify-content: flex-end;">
-        <button class="theme-toggle" id="themeToggle">Light Mode</button>
         <a href="#about">About</a>
         <a href="#experience">Experience</a>
         <a href="#projects">Projects</a>
@@ -1017,12 +1030,6 @@ export function generatePortfolioHTML(data: PortfolioData, customElements: Custo
         <div class="section-divider"></div>
       </div>
       <div class="card">
-        ${data.email ? `
-          <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-            <span style="font-weight: 600; font-size: 1.125rem;">Email</span>
-            <a href="mailto:${escapeHtml(data.email)}" style="color: #2563eb; text-decoration: none;">${escapeHtml(data.email)}</a>
-          </div>
-        ` : ''}
         ${data.phone ? `
           <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
             <span style="font-weight: 600; font-size: 1.125rem;">Phone</span>
@@ -1047,29 +1054,6 @@ export function generatePortfolioHTML(data: PortfolioData, customElements: Custo
       </div>
     </section>
 </main>
-<script>
-(function() {
-  const body = document.body;
-  const toggle = document.getElementById('themeToggle');
-  const savedTheme = localStorage.getItem('portfolio_theme');
-  if (savedTheme === 'light') {
-    body.classList.remove('dark');
-  }
-
-  function updateToggleLabel() {
-    if (!toggle) return;
-    toggle.textContent = body.classList.contains('dark') ? 'Light Mode' : 'Dark Mode';
-  }
-
-  updateToggleLabel();
-
-  toggle?.addEventListener('click', () => {
-    body.classList.toggle('dark');
-    localStorage.setItem('portfolio_theme', body.classList.contains('dark') ? 'dark' : 'light');
-    updateToggleLabel();
-  });
-})();
-</script>
 </body>
 </html>`;
 }

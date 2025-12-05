@@ -38,3 +38,17 @@ body {
   background-size: 200% 200%;
   animation: gradient 3s ease infinite;
 }
+
+/* Marquee animation for infinite scrolling logo stripe */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
