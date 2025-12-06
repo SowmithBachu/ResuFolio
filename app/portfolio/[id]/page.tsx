@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useParams } from 'next/navigation';
 import PortfolioPreview from '../../components/PortfolioPreview';
 import PortfolioPreview1 from '../../components/PortfolioPreview1';
+import PortfolioPreview3 from '../../components/PortfolioPreview3';
 import { Loader, Download } from 'lucide-react';
 import { downloadPortfolioHTML } from '../../utils/generatePortfolioHTML';
 
@@ -46,7 +47,7 @@ interface PortfolioData {
     props?: any;
     section?: string;
   }>;
-  template?: '1' | '2';
+  template?: '1' | '2' | '3';
 }
 
 function PortfolioContent() {
@@ -145,14 +146,16 @@ function PortfolioContent() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#121212]">
-      {data.template === '2' ? (
+      {data.template === '3' ? (
+        <PortfolioPreview3 data={data} customElements={data.customElements} />
+      ) : data.template === '2' ? (
         <PortfolioPreview1 data={data} customElements={data.customElements} />
       ) : (
         <PortfolioPreview data={data} customElements={data.customElements} />
       )}
       <div className="fixed bottom-8 right-8 z-50">
         <button
-          onClick={() => downloadPortfolioHTML(data, data.customElements || [])}
+          onClick={() => downloadPortfolioHTML(data, data.customElements || [], data.template)}
           className="flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all shadow-lg hover:shadow-xl font-medium"
         >
           <Download className="w-5 h-5" />
