@@ -36,11 +36,8 @@ async function parseResumeWithGemini(imageData: string[], apiKey: string): Promi
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  // Use gemini-1.5-pro which supports vision/image inputs
-  // If this fails, fallback logic will try other models
-  const model = genAI.getGenerativeModel({ 
-    model: 'gemini-2.5-pro',
-  });
+  // Use a single configurable model (defaults to gemini-2.5-pro)
+  const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-pro';
 
   const prompt = `You are an expert at extracting portfolio-relevant information from resumes. Extract ONLY the most important information suitable for a portfolio website:
 
@@ -114,6 +111,7 @@ IMPORTANT: Keep all text concise and portfolio-focused. Limit experience to top 
     });
 
     // Generate content with structured output
+    const model = genAI.getGenerativeModel({ model: modelName });
     const result = await model.generateContent([prompt, ...parts]);
     const response = await result.response;
     let text = response.text();
@@ -169,69 +167,6 @@ IMPORTANT: Keep all text concise and portfolio-focused. Limit experience to top 
       message: error.message,
       name: error.name,
     });
-    
-    // If model not found, try alternative models that support vision
-    if (error.message?.includes('not found') || error.message?.includes('404')) {
-      console.log('Trying alternative model names...');
-      const alternativeModels = ['gemini-2.5-pro'];
-      
-      for (const modelName of alternativeModels) {
-        try {
-          console.log(`Trying model: ${modelName}`);
-          const altModel = genAI.getGenerativeModel({ model: modelName });
-          const parts = imageData.map((img) => {
-            const base64Data = img.includes(',') ? img.split(',')[1] : img;
-            return {
-              inlineData: {
-                data: base64Data,
-                mimeType: 'image/png',
-              },
-            };
-          });
-          
-          const result = await altModel.generateContent([prompt, ...parts]);
-          const response = await result.response;
-          let text = response.text();
-          
-          if (!text || text.trim().length === 0) {
-            continue;
-          }
-          
-          let jsonText = text.trim();
-          if (jsonText.startsWith('```json')) {
-            jsonText = jsonText.replace(/^```json\n?/i, '').replace(/\n?```$/i, '');
-          } else if (jsonText.startsWith('```')) {
-            jsonText = jsonText.replace(/^```\n?/i, '').replace(/\n?```$/i, '');
-          }
-          
-          const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            jsonText = jsonMatch[0];
-          }
-          
-          const parsedData = JSON.parse(jsonText);
-          
-          if (parsedData && typeof parsedData === 'object') {
-            return {
-              name: parsedData.name || null,
-              email: parsedData.email || null,
-              phone: parsedData.phone || null,
-              location: parsedData.location || null,
-              summary: parsedData.summary || null,
-              experience: Array.isArray(parsedData.experience) ? parsedData.experience : [],
-              education: Array.isArray(parsedData.education) ? parsedData.education : [],
-              skills: Array.isArray(parsedData.skills) ? parsedData.skills : [],
-              certifications: Array.isArray(parsedData.certifications) ? parsedData.certifications : [],
-            } as ResumeData;
-          }
-        } catch (altError) {
-          console.log(`Model ${modelName} also failed, trying next...`);
-          continue;
-        }
-      }
-      
-      throw new Error('No available Gemini model found. Please check your API key and available models.');
-    }
     
     // Provide more specific error messages
     if (error.message?.includes('API key') || error.message?.includes('GEMINI_API_KEY')) {
