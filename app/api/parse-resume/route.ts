@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { redis } from '@/lib/redis-client';
 
+// Simple sleep helper for backoff/retry delays
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 interface ResumeData {
   name?: string;
   email?: string;
@@ -232,10 +235,14 @@ IMPORTANT: Keep all text concise and portfolio-focused. Limit experience to top 
     
     // Provide more specific error messages
     if (error.message?.includes('API key') || error.message?.includes('GEMINI_API_KEY')) {
-      throw new Error('Invalid or missing Gemini API key. Please check your .env.local file.');
+      const err: any = new Error('Invalid or missing Gemini API key. Please check your .env.local file.');
+      err.status = 401;
+      throw err;
     }
     if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
-      throw new Error('API rate limit exceeded. Please try again later.');
+      const err: any = new Error('API rate limit exceeded. Please try again later.');
+      err.status = 429;
+      throw err;
     }
     if (error.message?.includes('JSON') || error.message?.includes('parse')) {
       throw new Error('Failed to parse AI response. The resume format might be too complex. Please try with a clearer PDF.');
@@ -263,6 +270,7 @@ async function parseWithRotatingGeminiKeys(imageData: string[]): Promise<ResumeD
 
   const maxKeys = Math.min(3, keys.length);
   const redisIndexKey = 'gemini:currentIndex';
+  const perKeyAttempts = 2;
 
   // Determine starting index (from Redis when available)
   let startIndex = 0;
@@ -283,47 +291,61 @@ async function parseWithRotatingGeminiKeys(imageData: string[]): Promise<ResumeD
     const index = (startIndex + offset) % maxKeys;
     const apiKey = keys[index];
 
-    try {
-      const result = await parseResumeWithGemini(imageData, apiKey);
+    for (let attempt = 0; attempt < perKeyAttempts; attempt++) {
+      const delayMs = 400 * (attempt + 1);
+      try {
+        const result = await parseResumeWithGemini(imageData, apiKey);
 
-      // On success, advance the index for the next request (round‑robin)
-      if (redis) {
-        try {
-          const nextIndex = (index + 1) % maxKeys;
-          await redis.set(redisIndexKey, nextIndex);
-        } catch {
-          // Non‑fatal if Redis set fails
+        // On success, advance the index for the next request (round‑robin)
+        if (redis) {
+          try {
+            const nextIndex = (index + 1) % maxKeys;
+            await redis.set(redisIndexKey, nextIndex);
+          } catch {
+            // Non‑fatal if Redis set fails
+          }
         }
+
+        return result;
+      } catch (error: any) {
+        lastError = error;
+        const message = String(error?.message || '').toLowerCase();
+        const status = (error as any)?.status || (error as any)?.statusCode;
+        const shouldRotate =
+          status === 429 ||
+          status === 503 ||
+          message.includes('rate limit') ||
+          message.includes('quota') ||
+          message.includes('resource_exhausted') ||
+          message.includes('overloaded') ||
+          message.includes('service unavailable') ||
+          // Also rotate on invalid / missing API key so the next key can be tried
+          message.includes('invalid or missing gemini api key') ||
+          message.includes('api key');
+
+        const shouldRetrySameKey = shouldRotate && attempt + 1 < perKeyAttempts;
+
+        if (shouldRetrySameKey) {
+          console.warn(`Gemini API rate-limited for key index ${index}, retrying after ${delayMs}ms (attempt ${attempt + 2}/${perKeyAttempts})...`);
+          await sleep(delayMs);
+          continue;
+        }
+
+        // Only stop immediately if this is some other kind of error
+        if (!shouldRotate) {
+          throw error;
+        }
+
+        // Otherwise, move to next key (outer loop)
+        console.warn(`Gemini API rate-limited for key index ${index}, rotating to next key...`);
+        break;
       }
-
-      return result;
-    } catch (error: any) {
-      lastError = error;
-      const message = String(error?.message || '').toLowerCase();
-      const status = (error as any)?.status || (error as any)?.statusCode;
-      const shouldRotate =
-        status === 429 ||
-        status === 503 ||
-        message.includes('rate limit') ||
-        message.includes('quota') ||
-        message.includes('resource_exhausted') ||
-        message.includes('overloaded') ||
-        message.includes('service unavailable') ||
-        // Also rotate on invalid / missing API key so the next key can be tried
-        message.includes('invalid or missing gemini api key') ||
-        message.includes('api key');
-
-      // Only stop immediately if this is some other kind of error
-      if (!shouldRotate) {
-        throw error;
-      }
-
-      // Otherwise, try the next key (loop continues)
-      console.warn(`Gemini API rate-limited for key index ${index}, rotating to next key...`);
     }
   }
 
-  throw lastError || new Error('All configured Gemini API keys are exhausted. Please try again later.');
+  const fallbackError: any = new Error('All configured Gemini API keys are exhausted. Please try again later.');
+  fallbackError.status = 429;
+  throw lastError || fallbackError;
 }
 
 export async function POST(request: NextRequest) {
@@ -344,9 +366,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, data: resumeData });
   } catch (error: any) {
     console.error('Error processing resume:', error);
+    const message = String(error?.message || '').toLowerCase();
+    let status = (error as any)?.status || 500;
+    if (message.includes('rate limit') || message.includes('quota')) {
+      status = 429;
+    } else if (message.includes('api key')) {
+      status = status === 500 ? 401 : status;
+    }
     return NextResponse.json(
       { error: error.message || 'Failed to process resume' },
-      { status: 500 }
+      { status }
     );
   }
 }
