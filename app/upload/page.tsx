@@ -258,6 +258,9 @@ export default function UploadPage() {
 
       const result = await response.json();
 
+      if (response.status === 429) {
+        throw new Error('We hit the AI rate limit. Please wait ~60 seconds and try again.');
+      }
       if (!response.ok) {
         throw new Error(result.error || 'Failed to parse resume');
       }
