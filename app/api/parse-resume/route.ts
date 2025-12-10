@@ -1,9 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { redis } from '@/lib/redis-client';
-
-// Simple sleep helper for backoff/retry delays
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 interface ResumeData {
   name?: string;
@@ -30,14 +25,15 @@ interface ResumeData {
 }
 
 
-async function parseResumeWithGemini(imageData: string[], apiKey: string): Promise<ResumeData> {
-  if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is not set in environment variables');
+async function parseResumeWithOpenRouter(imageData: string[]): Promise<ResumeData> {
+  if (!process.env.OPENROUTER_KEY) {
+    const err: any = new Error('OPENROUTER_KEY is not set in environment variables');
+    err.status = 401;
+    throw err;
   }
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  // Use a single configurable model (defaults to gemini-2.5-pro)
-  const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-pro';
+  const modelName =
+    process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.2-11b-vision-instruct';
 
   const prompt = `You are an expert at extracting portfolio-relevant information from resumes. Extract ONLY the most important information suitable for a portfolio website:
 
@@ -96,45 +92,100 @@ Return ONLY valid JSON without any markdown formatting, code blocks, or explanat
 IMPORTANT: Keep all text concise and portfolio-focused. Limit experience to top 2-3 positions, education to highest degree, skills to 8-12 most relevant, and projects to the 2-4 strongest ones. If a field is not present, use null for strings or empty arrays []. Return ONLY the JSON object, nothing else.`;
 
   try {
-    // Validate and prepare image data
-    const parts = imageData.map((img) => {
+    const imageParts = imageData.map((img) => {
       const base64Data = img.includes(',') ? img.split(',')[1] : img;
       if (!base64Data || base64Data.length === 0) {
         throw new Error('Invalid image data format');
       }
       return {
-        inlineData: {
-          data: base64Data,
-          mimeType: 'image/png',
+        type: 'image_url' as const,
+        image_url: {
+          url: `data:image/png;base64,${base64Data}`,
         },
       };
     });
 
-    // Generate content with structured output
-    const model = genAI.getGenerativeModel({ model: modelName });
-    const result = await model.generateContent([prompt, ...parts]);
-    const response = await result.response;
-    let text = response.text();
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+        'X-Title': 'Resume Parser',
+      },
+      body: JSON.stringify({
+        model: modelName,
+        temperature: 0.2,
+        max_tokens: 900,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are a resume parser that returns strict JSON matching the requested schema. Do not include any markdown fences or explanations.',
+          },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              ...imageParts,
+            ],
+          },
+        ],
+      }),
+    });
 
-    if (!text || text.trim().length === 0) {
+    if (!response.ok) {
+      const errText = await response.text();
+      const err: any = new Error(
+        `OpenRouter request failed: ${response.status} ${response.statusText} - ${errText}`
+      );
+      err.status = response.status;
+      throw err;
+    }
+
+    const data = await response.json();
+
+    const content = data?.choices?.[0]?.message?.content;
+    const text =
+      Array.isArray(content) && content.length > 0
+        ? content.map((part: any) => part?.text || '').join('').trim()
+        : (content || '').trim();
+    if (!text) {
       throw new Error('Empty response from AI model');
     }
 
-    // Clean the response - remove markdown code blocks if present
     let jsonText = text.trim();
-    
-    // Remove markdown code blocks
+
     if (jsonText.startsWith('```json')) {
       jsonText = jsonText.replace(/^```json\n?/i, '').replace(/\n?```$/i, '');
     } else if (jsonText.startsWith('```')) {
       jsonText = jsonText.replace(/^```\n?/i, '').replace(/\n?```$/i, '');
     }
-    
-    // Try to extract JSON object if there's extra text
-    const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      jsonText = jsonMatch[0];
-    }
+
+    const extractJson = (input: string) => {
+      // try simple { ... } match first
+      const simple = input.match(/\{[\s\S]*\}/);
+      if (simple) return simple[0];
+
+      // fallback: stack-based brace matching to recover largest JSON-like block
+      let start = -1;
+      let depth = 0;
+      for (let i = 0; i < input.length; i++) {
+        const ch = input[i];
+        if (ch === '{') {
+          if (depth === 0) start = i;
+          depth++;
+        } else if (ch === '}') {
+          depth--;
+          if (depth === 0 && start !== -1) {
+            return input.slice(start, i + 1);
+          }
+        }
+      }
+      return input;
+    };
+
+    jsonText = extractJson(jsonText);
 
     let parsedData;
     try {
@@ -142,15 +193,14 @@ IMPORTANT: Keep all text concise and portfolio-focused. Limit experience to top 
     } catch (parseError: any) {
       console.error('JSON Parse Error:', parseError);
       console.error('Raw response (first 500 chars):', text.substring(0, 500));
-      throw new Error(`Failed to parse JSON response. The AI may have returned invalid JSON. Please try again.`);
+      console.error('Extracted JSON candidate (first 500 chars):', jsonText.substring(0, 500));
+      throw new Error('Failed to parse AI response. Please retry with a clearer PDF or try again in a moment.');
     }
-    
-    // Validate response structure
+
     if (!parsedData || typeof parsedData !== 'object') {
       throw new Error('Invalid response format from AI');
     }
-    
-    // Ensure all fields exist with proper defaults
+
     return {
       name: parsedData.name || null,
       email: parsedData.email || null,
@@ -162,125 +212,31 @@ IMPORTANT: Keep all text concise and portfolio-focused. Limit experience to top 
       projects: Array.isArray(parsedData.projects) ? parsedData.projects : [],
     } as ResumeData;
   } catch (error: any) {
-    console.error('Error parsing resume with Gemini:', error);
+    console.error('Error parsing resume with OpenRouter:', error);
     console.error('Error details:', {
       message: error.message,
       name: error.name,
+      status: error.status,
+      statusText: error.statusText,
     });
-    
-    // Provide more specific error messages
-    if (error.message?.includes('API key') || error.message?.includes('GEMINI_API_KEY')) {
-      const err: any = new Error('Invalid or missing Gemini API key. Please check your .env.local file.');
+
+    const message = String(error?.message || '').toLowerCase();
+    if (message.includes('api key') || message.includes('unauthorized') || message.includes('openrouter')) {
+      const err: any = new Error('Invalid or missing OPENROUTER_KEY. Please check your .env.local file.');
       err.status = 401;
       throw err;
     }
-    if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
-      const err: any = new Error('API rate limit exceeded. Please try again later.');
+    if (message.includes('rate limit') || message.includes('quota') || error.status === 429) {
+      const err: any = new Error('OpenRouter API rate limit exceeded. Please try again later.');
       err.status = 429;
       throw err;
     }
-    if (error.message?.includes('JSON') || error.message?.includes('parse')) {
+    if (message.includes('json') || message.includes('parse')) {
       throw new Error('Failed to parse AI response. The resume format might be too complex. Please try with a clearer PDF.');
     }
-    
+
     throw new Error(error.message || 'Failed to parse resume. Please ensure the PDF is clear and readable.');
   }
-}
-
-// Rotate between multiple Gemini API keys, optionally using Redis to persist index across requests
-async function parseWithRotatingGeminiKeys(imageData: string[]): Promise<ResumeData> {
-  const rawKeys =
-    process.env.GEMINI_API_KEYS ||
-    process.env.GEMINI_API_KEY ||
-    '';
-
-  const keys = rawKeys
-    .split(',')
-    .map((k) => k.trim())
-    .filter(Boolean);
-
-  if (keys.length === 0) {
-    throw new Error('No Gemini API keys configured. Please set GEMINI_API_KEYS or GEMINI_API_KEY in your environment.');
-  }
-
-  const maxKeys = Math.min(3, keys.length);
-  const redisIndexKey = 'gemini:currentIndex';
-  const perKeyAttempts = 2;
-
-  // Determine starting index (from Redis when available)
-  let startIndex = 0;
-  if (redis) {
-    try {
-      const stored = await redis.get<number>(redisIndexKey);
-      if (typeof stored === 'number' && stored >= 0 && stored < maxKeys) {
-        startIndex = stored;
-      }
-    } catch {
-      // Ignore Redis errors and just fall back to 0
-    }
-  }
-
-  let lastError: any;
-
-  for (let offset = 0; offset < maxKeys; offset++) {
-    const index = (startIndex + offset) % maxKeys;
-    const apiKey = keys[index];
-
-    for (let attempt = 0; attempt < perKeyAttempts; attempt++) {
-      const delayMs = 400 * (attempt + 1);
-      try {
-        const result = await parseResumeWithGemini(imageData, apiKey);
-
-        // On success, advance the index for the next request (round‑robin)
-        if (redis) {
-          try {
-            const nextIndex = (index + 1) % maxKeys;
-            await redis.set(redisIndexKey, nextIndex);
-          } catch {
-            // Non‑fatal if Redis set fails
-          }
-        }
-
-        return result;
-      } catch (error: any) {
-        lastError = error;
-        const message = String(error?.message || '').toLowerCase();
-        const status = (error as any)?.status || (error as any)?.statusCode;
-        const shouldRotate =
-          status === 429 ||
-          status === 503 ||
-          message.includes('rate limit') ||
-          message.includes('quota') ||
-          message.includes('resource_exhausted') ||
-          message.includes('overloaded') ||
-          message.includes('service unavailable') ||
-          // Also rotate on invalid / missing API key so the next key can be tried
-          message.includes('invalid or missing gemini api key') ||
-          message.includes('api key');
-
-        const shouldRetrySameKey = shouldRotate && attempt + 1 < perKeyAttempts;
-
-        if (shouldRetrySameKey) {
-          console.warn(`Gemini API rate-limited for key index ${index}, retrying after ${delayMs}ms (attempt ${attempt + 2}/${perKeyAttempts})...`);
-          await sleep(delayMs);
-          continue;
-        }
-
-        // Only stop immediately if this is some other kind of error
-        if (!shouldRotate) {
-          throw error;
-        }
-
-        // Otherwise, move to next key (outer loop)
-        console.warn(`Gemini API rate-limited for key index ${index}, rotating to next key...`);
-        break;
-      }
-    }
-  }
-
-  const fallbackError: any = new Error('All configured Gemini API keys are exhausted. Please try again later.');
-  fallbackError.status = 429;
-  throw lastError || fallbackError;
 }
 
 export async function POST(request: NextRequest) {
@@ -295,8 +251,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse with Gemini using rotating API keys (Redis-backed when configured)
-    const resumeData = await parseWithRotatingGeminiKeys(images);
+    const resumeData = await parseResumeWithOpenRouter(images);
 
     return NextResponse.json({ success: true, data: resumeData });
   } catch (error: any) {

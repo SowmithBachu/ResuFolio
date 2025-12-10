@@ -1,10 +1,38 @@
+import fs from 'fs';
+import path from 'path';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const apiKey = process.env.GEMINI_API_KEY;
-const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-pro';
+function loadEnvValue(key) {
+  if (process.env[key]) return process.env[key];
+  const candidates = ['.env.local', '.env'];
+  for (const file of candidates) {
+    const fullPath = path.join(process.cwd(), file);
+    try {
+      const content = fs.readFileSync ? fs.readFileSync(fullPath, 'utf8') : null;
+      if (!content) continue;
+      const line = content
+        .split('\n')
+        .map((l) => l.trim())
+        .find((l) => l && !l.startsWith('#') && l.startsWith(`${key}=`));
+      if (line) {
+        const value = line.slice(key.length + 1).trim().replace(/^['"]|['"]$/g, '');
+        if (value) {
+          process.env[key] = value;
+          return value;
+        }
+      }
+    } catch (err) {
+      // ignore missing file
+    }
+  }
+  return undefined;
+}
+
+const apiKey = loadEnvValue('GEMINI_API_KEY');
+const modelName = process.env.GEMINI_MODEL || loadEnvValue('GEMINI_MODEL') || 'gemini-1.5-flash-002';
 
 if (!apiKey) {
-  console.error('GEMINI_API_KEY is not set');
+  console.error('GEMINI_API_KEY is not set (env or .env.local/.env)');
   process.exit(1);
 }
 
